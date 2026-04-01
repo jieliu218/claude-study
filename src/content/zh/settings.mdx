@@ -1,0 +1,82 @@
+# 配置项参考
+
+`settings.json` 所有字段的完整参考。
+
+## 完整 Schema
+
+```json
+{
+  "model": "claude-sonnet-4-6",
+  "theme": "dark",
+  "stream": true,
+  "verbose": false,
+
+  "permissions": {
+    "allow": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
+    "deny": []
+  },
+
+  "env": {
+    "NODE_ENV": "development"
+  },
+
+  "customCommands": [
+    {
+      "name": "命令名称",
+      "description": "在 /help 中显示",
+      "prompt": "完整的提示词内容"
+    }
+  ],
+
+  "hooks": {
+    "PreToolUse": [],
+    "PostToolUse": [],
+    "Notification": [],
+    "Stop": []
+  },
+
+  "mcpServers": {
+    "服务器名称": {
+      "command": "npx",
+      "args": ["-y", "@scope/server"],
+      "env": {}
+    }
+  },
+
+  "autoCompact": true,
+  "maxCostPerSession": 5.00
+}
+```
+
+## 权限规则语法
+
+| 模式 | 匹配范围 |
+|---|---|
+| `Read` | 所有 `Read` 工具调用 |
+| `Bash` | 所有 `Bash` 工具调用 |
+| `Bash(npm*)` | 命令以 `npm` 开头的 `Bash` 调用 |
+| `Bash(npm test)` | 精确匹配 `npm test` 命令 |
+| `Write(/tmp/*)` | 写入 `/tmp/` 下路径的 `Write` 调用 |
+| `Edit(*.md)` | 编辑 `.md` 文件的 `Edit` 调用 |
+
+`deny` 规则优先于 `allow` 规则。
+
+## 优先级顺序
+
+配置按以下顺序合并（后者优先级更高）：
+
+```
+系统默认值
+    ↓
+~/.claude/settings.json（用户级）
+    ↓
+.claude/settings.json（项目级，已提交）
+    ↓
+.claude/settings.local.json（项目级，已 gitignore）
+    ↓
+CLI 参数
+```
+
+<Callout type="tip">
+  团队项目建议：将包含共享工具权限和 MCP 服务器的 `.claude/settings.json` 提交到 Git；开发者将个人覆盖项放入 `.claude/settings.local.json`（添加到 `.gitignore`）。
+</Callout>

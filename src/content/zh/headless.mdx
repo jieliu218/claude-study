@@ -1,0 +1,109 @@
+# 无头模式与 CI
+
+Claude Code 可以非交互式运行，非常适合 CI/CD 流水线、脚本和自动化场景。
+
+## 基本用法
+
+```bash
+claude -p "您的提示词"
+# 或
+claude --print "您的提示词"
+```
+
+## 输出格式
+
+| 格式 | 参数 | 适用场景 |
+|---|---|---|
+| 纯文本 | `--output-format text` | 人类可读的脚本 |
+| JSON | `--output-format json` | 结构化数据、管道传输 |
+| 流式 JSON | `--output-format stream-json` | 实时处理 |
+
+### JSON 输出结构
+
+```json
+{
+  "type": "result",
+  "subtype": "success",
+  "result": "Claude 输出的文本",
+  "session_id": "abc123",
+  "cost_usd": 0.0042,
+  "num_turns": 3
+}
+```
+
+## 限制轮次
+
+使用 `--max-turns` 防止智能体失控：
+
+```bash
+claude -p "修复所有 lint 错误" --max-turns 10
+```
+
+## 限制工具
+
+在 CI 中限制 Claude 可使用的工具：
+
+```bash
+# 只读分析
+claude -p "总结此代码库" \
+  --allowedTools "Read,Glob,Grep"
+
+# 只允许特定 bash 命令
+claude -p "运行测试并报告结果" \
+  --allowedTools "Read,Bash(npm test*)"
+```
+
+## 跳过确认
+
+```bash
+claude -p "..." --dangerously-skip-permissions
+```
+
+<Callout type="warning">
+  仅在 Docker 容器等沙箱环境中使用 `--dangerously-skip-permissions`，切勿在开发机器或共享基础设施上使用。
+</Callout>
+
+## CI/CD 集成示例
+
+### GitHub Actions
+
+```yaml
+name: Claude Code 代码审查
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 安装 Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: 审查 PR
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          claude -p "审查以下变更，输出包含 summary、issues 和 suggestions 键的 JSON：$(git diff origin/main...HEAD)" \
+            --output-format json \
+            --max-turns 5 \
+            --allowedTools "Read,Glob,Grep"
+```
+
+## 退出码
+
+| 代码 | 含义 |
+|---|---|
+| `0` | 成功 |
+| `1` | 一般错误 |
+| `2` | 达到最大轮次但未完成 |
+| `3` | 身份验证错误 |

@@ -1,0 +1,151 @@
+# 钩子
+
+钩子允许您在 Claude Code 生命周期的特定节点自动运行 Shell 命令。可用于强制格式化、运行代码检查、记录操作日志或阻止危险操作。
+
+## 钩子事件
+
+| 事件 | 触发时机 |
+|---|---|
+| `PreToolUse` | 工具执行之前 |
+| `PostToolUse` | 工具执行完成之后 |
+| `Notification` | Claude 发送通知时 |
+| `Stop` | 会话结束时 |
+
+## 配置方式
+
+在 `settings.json` 的 `hooks` 键下配置：
+
+```json
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "npm run format 2>/dev/null || true"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+每个条目包含：
+- **`matcher`** —— 匹配工具名称的正则表达式（如 `Write|Edit`、`Bash`、`.*`）
+- **`hooks`** —— 要运行的钩子对象数组
+
+## 钩子输入（stdin）
+
+钩子通过 stdin 接收包含事件上下文的 JSON：
+
+```json
+{
+  "tool_name": "Write",
+  "tool_input": {
+    "file_path": "/path/to/file.ts",
+    "content": "..."
+  },
+  "session_id": "abc123"
+}
+```
+
+## 通过退出码控制执行
+
+| 退出码 | 含义 |
+|---|---|
+| `0` | 成功 —— 正常继续 |
+| `2` | 阻止工具调用，并将 stderr 显示给 Claude |
+| 其他非零 | 记录错误，继续执行 |
+
+在 `PreToolUse` 中使用退出码 `2` **阻止**工具调用：
+
+```bash
+#!/bin/bash
+# 阻止写入生产配置
+INPUT=$(cat)
+FILE=$(echo "$INPUT" | jq -r '.tool_input.file_path // ""')
+
+if [[ "$FILE" == *"config/production"* ]]; then
+  echo "已阻止：不能直接修改生产配置" >&2
+  exit 2
+fi
+```
+
+## 常用钩子配方
+
+### 每次写文件后自动格式化
+
+```json
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "FILE=$(cat | jq -r '.tool_input.file_path // empty'); [ -n \"$FILE\" ] && npx prettier --write \"$FILE\" 2>/dev/null || true"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+### 编辑 TypeScript 文件后运行 ESLint
+
+```json
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "FILE=$(cat | jq -r '.tool_input.file_path // empty'); [[ \"$FILE\" == *.ts || \"$FILE\" == *.tsx ]] && npx eslint --fix \"$FILE\" 2>/dev/null || true"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+### 阻止 `rm -rf` 命令
+
+```json
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "INPUT=$(cat); CMD=$(echo \"$INPUT\" | jq -r '.tool_input.command // \"\"'); if echo \"$CMD\" | grep -qE 'rm\\s+-rf'; then echo '已阻止：不允许 rm -rf' >&2; exit 2; fi"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+<Callout type="warning">
+  钩子以您的用户权限运行。请保持钩子脚本简短，避免将不可信数据传入 Shell 解释器。
+</Callout>
+
+## 调试钩子
+
+启用详细模式以查看钩子执行情况：
+
+```bash
+claude --verbose
+```
+
+日志文件位于 `~/.claude/logs/`。

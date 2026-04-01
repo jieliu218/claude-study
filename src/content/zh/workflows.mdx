@@ -1,0 +1,89 @@
+# 多智能体工作流
+
+Claude Code 支持启动子智能体 —— 独立的 Claude 进程，可并行或串行处理任务。这为复杂任务开启了强大的工作模式。
+
+## Agent 工具
+
+当 Claude 拥有 `Agent` 工具时，它可以启动子智能体：
+
+```
+> 并行分析此代码库中的所有 TypeScript 文件，并总结每个模块的用途。
+```
+
+Claude 会启动多个智能体，各自同时读取不同文件，然后汇总结果。
+
+## 编排者 / 子智能体模式
+
+```
+编排者（主 Claude 会话）
+    │
+    ├── 子智能体 A：分析身份验证模块
+    ├── 子智能体 B：分析支付模块
+    └── 子智能体 C：分析数据库层
+         │
+         └── 向编排者返回结果
+              │
+              └── 编排者整合最终报告
+```
+
+**编排者职责：**
+- 将任务拆解为独立子任务
+- 委派给专门的子智能体
+- 整合结果
+- 处理失败情况
+
+**子智能体特点：**
+- 独立上下文（无法访问编排者的对话）
+- 可使用所有工具（除非被限制）
+- 专注于特定任务
+
+## 无头 + 多智能体的 CI 用法
+
+非交互式运行 Claude Code 并支持子智能体：
+
+```bash
+claude -p "审查此 PR 中所有变更文件，输出 JSON 摘要" \
+  --output-format json \
+  --max-turns 20 \
+  --allowedTools "Read,Grep,Glob,Bash(git diff*)"
+```
+
+## 并行代码审查模式
+
+```bash
+#!/bin/bash
+# 并行审查多个文件
+
+FILES=$(git diff --name-only HEAD~1)
+
+for FILE in $FILES; do
+  claude -p "审查 $FILE 是否存在 Bug 和安全问题，请简洁作答。" \
+    --allowedTools "Read" \
+    --output-format json > "review-$FILE.json" &
+done
+
+wait  # 等待所有并行任务完成
+cat review-*.json | jq -s '.'
+```
+
+## 工作树隔离
+
+使用 Git 工作树为每个子智能体提供独立的代码库副本：
+
+```bash
+# 为风险较高的重构创建隔离工作树
+git worktree add /tmp/refactor-branch feature/refactor
+claude --add-dir /tmp/refactor-branch -p "重构身份验证模块"
+```
+
+<Callout type="tip">
+  工作树隔离特别适合测试试探性更改 —— 每个智能体拥有独立分支，无冲突风险。
+</Callout>
+
+## 最佳实践
+
+1. **子智能体提示词要具体** —— 模糊的提示词会浪费轮次
+2. **限制工具** —— 只给子智能体所需的工具
+3. **无头模式使用 `--max-turns`** —— 防止智能体失控
+4. **优先并行而非串行** —— 当任务相互独立时
+5. **由编排者负责整合** —— 不要将子智能体的原始输出直接展示给用户

@@ -1,0 +1,71 @@
+# 快速开始
+
+5 分钟内快速上手 Claude Code。
+
+## 1. 启动会话
+
+```bash
+cd 您的项目目录
+claude
+```
+
+## 2. 让 Claude 探索您的代码
+
+```
+> 这个项目是做什么的？给我一个高层次的概览。
+```
+
+```
+> 找出所有 API 端点，并列出它们的 HTTP 方法。
+```
+
+## 3. 修改代码
+
+```
+> 为 src/users.ts 中的 createUser 函数添加输入验证
+```
+
+```
+> 为支付模块编写测试，遵循现有的测试风格。
+```
+
+## 4. 通过 Claude 运行命令
+
+```
+> 运行测试，并修复所有失败的用例。
+```
+
+```
+> 检查代码风格，修复所有可自动修复的问题。
+```
+
+## 5. 恢复会话
+
+```bash
+claude --continue       # 恢复上次对话
+claude --resume abc123  # 按会话 ID 恢复
+```
+
+## 常用任务示例
+
+| 任务 | 提示词 |
+|---|---|
+| 理解文件 | `解释 src/auth.ts 的作用` |
+| 修复 Bug | `修复 api.ts 第 42 行的 TypeError` |
+| 新增功能 | `为 /users 接口添加分页` |
+| 重构代码 | `将此模块重构为使用 async/await` |
+| 编写文档 | `为所有导出函数编写 JSDoc 注释` |
+| 审查变更 | `审查我的暂存更改并提出改进建议` |
+
+## 常用参数
+
+```bash
+claude --model claude-opus-4-6    # 使用指定模型
+claude --no-stream                # 禁用流式输出
+claude -p "修复 lint 错误"        # 无头单次执行
+claude --output-format json       # 输出 JSON（无头模式）
+```
+
+<Callout type="tip">
+  在会话中输入 `/help` 查看所有可用的斜杠命令。
+</Callout>

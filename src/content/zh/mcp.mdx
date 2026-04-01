@@ -1,0 +1,134 @@
+# MCP 服务器
+
+模型上下文协议（MCP）是连接 AI 模型与外部工具和数据源的开放标准。Claude Code 作为 MCP 客户端，可连接提供工具、资源和提示词的服务器。
+
+## MCP 能做什么
+
+- 直接从 Claude 查询数据库
+- 搜索和操作 GitHub、Jira、Linear
+- 控制浏览器（Playwright/Puppeteer）
+- 访问需要身份验证的 API
+- 接入自定义内部工具
+
+## 添加 MCP 服务器
+
+在 `settings.json` 的 `mcpServers` 中添加服务器配置：
+
+```json
+{
+  "mcpServers": {
+    "服务器名称": {
+      "command": "npx",
+      "args": ["-y", "@scope/mcp-server-name"],
+      "env": {
+        "API_KEY": "您的密钥"
+      }
+    }
+  }
+}
+```
+
+### 传输类型
+
+| 传输方式 | `command` 字段 | 适用场景 |
+|---|---|---|
+| **stdio**（默认） | 可执行文件路径或 `npx` | 本地进程 |
+| **SSE** | 不适用 —— 使用 `url` 字段 | 远程 HTTP 服务器 |
+
+SSE 示例：
+
+```json
+{
+  "mcpServers": {
+    "remote-server": {
+      "url": "https://my-mcp-server.example.com/sse",
+      "headers": {
+        "Authorization": "Bearer token"
+      }
+    }
+  }
+}
+```
+
+## 常用 MCP 服务器
+
+### 文件系统
+
+读写 Claude 默认作用域之外的文件：
+
+```json
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/Users/you/Documents"]
+    }
+  }
+}
+```
+
+### GitHub
+
+创建 Issue、PR，搜索仓库：
+
+```json
+{
+  "mcpServers": {
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": { "GITHUB_TOKEN": "ghp_..." }
+    }
+  }
+}
+```
+
+### PostgreSQL
+
+查询数据库：
+
+```json
+{
+  "mcpServers": {
+    "postgres": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-postgres", "postgresql://localhost/mydb"]
+    }
+  }
+}
+```
+
+## 会话中管理 MCP
+
+```
+/mcp              — 列出已连接的服务器和可用工具
+/mcp restart      — 重启指定服务器
+/mcp logs         — 查看服务器日志
+```
+
+## 构建自己的 MCP 服务器
+
+MCP SDK 支持 TypeScript 和 Python：
+
+```bash
+npm install @modelcontextprotocol/sdk
+```
+
+```typescript
+import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+
+const server = new Server(
+  { name: "my-server", version: "1.0.0" },
+  { capabilities: { tools: {} } }
+);
+
+// 注册工具并处理调用...
+
+const transport = new StdioServerTransport();
+await server.connect(transport);
+```
+
+<Callout type="info">
+  MCP 服务器的工具会与 Claude Code 的内置工具一同展示给 Claude，Claude 根据上下文决定何时使用它们。
+</Callout>

@@ -1,0 +1,98 @@
+# 记忆（CLAUDE.md）
+
+Claude Code 读取名为 `CLAUDE.md` 的 Markdown 文件，以获取关于项目的持久化上下文。这些文件在每次会话开始时自动读取。
+
+## 文件位置与优先级
+
+Claude 会合并来自多个位置的 CLAUDE.md 文件：
+
+| 位置 | 作用域 | 典型用途 |
+|---|---|---|
+| `~/.claude/CLAUDE.md` | 用户全局 | 个人偏好、代码风格规则 |
+| `./CLAUDE.md` | 项目根目录 | 项目概览、架构、规范 |
+| `./src/CLAUDE.md` | 子目录 | 特定组件的上下文 |
+
+所有文件都会被读取并合并。越具体（层级越深）的文件优先级越高。
+
+## CLAUDE.md 应包含什么
+
+一个好的项目级 CLAUDE.md 应涵盖：
+
+```markdown
+# 项目：我的应用
+
+## 概览
+项目功能的简要描述。
+
+## 架构
+- 前端：Next.js 14（App Router），位于 /app
+- 后端：Express API，位于 /server
+- 数据库：PostgreSQL（通过 Prisma）
+
+## 开发命令
+- `npm run dev` —— 启动开发服务器
+- `npm test` —— 运行测试（Jest + Testing Library）
+- `npm run lint` —— ESLint + Prettier
+
+## 代码规范
+- 文件名使用 kebab-case
+- 始终使用 TypeScript strict 模式
+- 优先使用命名导出而非默认导出
+- 为所有公共 API 函数编写测试
+
+## 关键文件
+- /app/api/ —— API 路由处理器
+- /lib/db.ts —— 数据库客户端单例
+- /types/ —— 共享 TypeScript 类型
+
+## 禁止事项
+- 不要提交 .env 文件
+- 不要在没有注释说明的情况下使用 `any` 类型
+- 集成测试中不要 Mock 数据库
+```
+
+## 动态记忆
+
+Claude 可以在会话中根据要求更新 CLAUDE.md：
+
+```
+> 记住，这个项目始终使用 Vitest，而不是 Jest。
+```
+
+使用 `/memory` 查看和编辑记忆文件：
+
+```
+/memory
+```
+
+## 团队记忆与个人记忆
+
+<Callout type="tip">
+  将 `CLAUDE.md` 提交到 Git，让整个团队受益。个人偏好存放在 `~/.claude/CLAUDE.md` 中，无需共享。
+</Callout>
+
+**团队 CLAUDE.md**（提交到 Git）：
+- 架构决策
+- 编码规范
+- 构建/测试命令
+- 领域术语表
+
+**个人 `~/.claude/CLAUDE.md`**：
+- 回复长度偏好
+- 解释风格偏好
+- 个人工作流偏好
+
+## CLAUDE.md vs settings.json
+
+| 内容 | 位置 |
+|---|---|
+| 项目上下文、编码规范、架构说明 | CLAUDE.md |
+| 工具权限、钩子、MCP 服务器 | settings.json |
+| API 密钥 | 环境变量 |
+
+## 使用建议
+
+- 保持 CLAUDE.md **简洁、及时更新** —— 过时的上下文会误导 Claude
+- 使用标题，便于 Claude 快速定位特定章节
+- 包含**反模式**（"不要做 X"）—— 这些信息往往最有价值
+- 用相对路径引用关键文件，如 `/src/auth/index.ts`
