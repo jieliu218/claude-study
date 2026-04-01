@@ -1,0 +1,62 @@
+# Overview
+
+Claude Code is an agentic coding tool made by Anthropic that lives in your terminal. It understands your codebase, writes and edits files, runs tests, and orchestrates complex multi-step tasks — all through natural language.
+
+## What Claude Code can do
+
+- **Read and write files** across your entire project
+- **Execute shell commands** — tests, builds, linters, git operations
+- **Search and navigate** large codebases with precision
+- **Spawn subagents** for parallel, multi-step workflows
+- **Connect to MCP servers** to extend capabilities (databases, APIs, browsers)
+
+## Architecture
+
+Claude Code runs as a CLI process on your machine. It:
+
+1. Reads your project context (files, git history, CLAUDE.md memory)
+2. Sends requests to Anthropic's API (Claude models)
+3. Executes tools locally (file read/write, bash, search)
+4. Streams results back to your terminal
+
+```
+You ──► claude CLI ──► Anthropic API (Claude model)
+                            │
+                     Tool execution
+                     (local process)
+                            │
+                    File system / Shell
+```
+
+## Key concepts
+
+| Concept | Description |
+|---|---|
+| **Sessions** | Each conversation is a session; use `--continue` to resume |
+| **CLAUDE.md** | Markdown files Claude reads for persistent project context |
+| **Hooks** | Shell scripts that run before/after tool calls |
+| **MCP** | Model Context Protocol — plug-in tool servers |
+| **Slash commands** | Built-in `/commands` available inside a session |
+| **Headless mode** | Non-interactive `claude -p` for CI/scripts |
+
+## Models
+
+Claude Code defaults to the most capable Claude model available. As of 2025:
+
+- **claude-opus-4-6** — Most capable, best for complex agentic tasks
+- **claude-sonnet-4-6** — Balanced speed and capability (default in many contexts)
+- **claude-haiku-4-5** — Fast, cost-efficient for simple tasks
+
+<Callout type="info">
+  Claude Code uses the `ANTHROPIC_API_KEY` environment variable for authentication. Set it in your shell profile or `.env` file.
+</Callout>
+
+## Permissions model
+
+Claude Code runs with your user permissions. It will ask for confirmation before:
+
+- Deleting files
+- Running destructive shell commands
+- Making network requests outside of the Anthropic API
+
+You can adjust permission behavior in your `settings.json`.

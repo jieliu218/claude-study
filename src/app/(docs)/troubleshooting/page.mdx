@@ -1,0 +1,141 @@
+# Troubleshooting
+
+## Authentication errors
+
+### `ANTHROPIC_API_KEY not set`
+
+```bash
+export ANTHROPIC_API_KEY="sk-ant-..."
+```
+
+Add to `~/.zshrc` or `~/.bashrc` to persist.
+
+### `Invalid API key`
+
+- Check for extra spaces or newlines in the key
+- Verify the key is active at console.anthropic.com
+- Ensure you're not using a project API key where a personal key is required
+
+## Rate limits
+
+### `429 Too Many Requests`
+
+You've hit your API rate limit. Options:
+
+1. Wait and retry (Claude Code retries automatically)
+2. Upgrade your API tier at console.anthropic.com
+3. Use `--max-turns` to limit session length
+
+## Context window issues
+
+### `Context window exceeded`
+
+The conversation has grown too large. Solutions:
+
+```
+/compact         — summarize history to free context
+/clear           — clear history (loses context)
+```
+
+Or start a new session with `--continue` to carry over just the summary.
+
+Enable auto-compact in settings:
+
+```json
+{
+  "autoCompact": true
+}
+```
+
+## Tool permission errors
+
+### `Tool not allowed: Bash`
+
+Claude tried to use a tool that's been denied. Check your `settings.json`:
+
+```json
+{
+  "permissions": {
+    "allow": ["Read", "Glob", "Grep", "Write", "Edit", "Bash"]
+  }
+}
+```
+
+### Hook blocking a tool call
+
+A `PreToolUse` hook exited with code `2`. Run with `--verbose` to see hook output:
+
+```bash
+claude --verbose
+```
+
+## MCP issues
+
+### Server fails to start
+
+```bash
+# Test the server independently
+npx -y @modelcontextprotocol/server-filesystem /tmp
+```
+
+Common causes:
+- Missing environment variables (API keys)
+- Node.js version incompatibility
+- Network firewall blocking SSE connections
+
+### Tools not appearing
+
+Use `/mcp` inside a session to check server status. If the server shows as `error`:
+
+1. Check server logs: `/mcp logs`
+2. Restart the server: `/mcp restart`
+3. Verify the `command` and `args` in `settings.json`
+
+## Slow performance
+
+### High latency responses
+
+- Switch to a faster model: `--model claude-haiku-4-5`
+- Reduce context: `/compact` or start a fresh session
+- Check your internet connection and proximity to Anthropic's API
+
+### Claude taking too many turns
+
+Add explicit scope to your prompt:
+
+```
+Bad:  "Fix all the bugs"
+Good: "Fix the TypeError in src/api.ts line 42 only"
+```
+
+Use `--max-turns` to enforce limits:
+
+```bash
+claude -p "..." --max-turns 5
+```
+
+## File encoding issues
+
+Claude Code reads files as UTF-8. For non-UTF-8 files:
+
+```bash
+# Convert to UTF-8 first
+iconv -f latin1 -t utf-8 input.txt > output.txt
+```
+
+## Debug logging
+
+Enable debug output:
+
+```bash
+CLAUDE_DEBUG=1 claude
+```
+
+Logs are written to `~/.claude/logs/`.
+
+## Getting help
+
+- `/help` — in-session command reference
+- `claude --help` — CLI flag reference
+- GitHub Issues: github.com/anthropics/claude-code/issues
+- Official docs: docs.anthropic.com/en/docs/claude-code

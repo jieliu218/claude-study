@@ -1,0 +1,71 @@
+# Installation
+
+## Requirements
+
+- **Node.js** 18 or later
+- **npm** 8 or later
+- An **Anthropic API key** (get one at console.anthropic.com)
+
+## Install
+
+```bash
+npm install -g @anthropic-ai/claude-code
+```
+
+Verify the installation:
+
+```bash
+claude --version
+```
+
+## Authenticate
+
+Set your API key as an environment variable:
+
+```bash
+export ANTHROPIC_API_KEY="sk-ant-..."
+```
+
+Add it to your shell profile to persist across sessions:
+
+```bash
+# ~/.zshrc or ~/.bashrc
+export ANTHROPIC_API_KEY="sk-ant-..."
+```
+
+<Callout type="tip">
+  On macOS you can also store the key in your system keychain and reference it via `$(security find-generic-password -s anthropic -w)`.
+</Callout>
+
+## First run
+
+```bash
+cd your-project
+claude
+```
+
+Claude Code will greet you with an interactive prompt. Type a task and press Enter.
+
+## Update
+
+```bash
+npm update -g @anthropic-ai/claude-code
+```
+
+## Uninstall
+
+```bash
+npm uninstall -g @anthropic-ai/claude-code
+```
+
+## IDE Integration
+
+Claude Code integrates with:
+
+- **VS Code** — install the Claude Code extension from the marketplace
+- **JetBrains IDEs** — install the Claude Code plugin
+- **Any terminal** — the CLI works standalone
+
+<Callout type="info">
+  The VS Code and JetBrains extensions allow Claude Code to read your open files and editor state as additional context.
+</Callout>

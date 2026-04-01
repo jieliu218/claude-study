@@ -1,0 +1,103 @@
+# Multi-Agent Workflows
+
+Claude Code supports spawning subagents — separate Claude processes that work on tasks in parallel or in sequence. This unlocks powerful patterns for large, complex tasks.
+
+## The Agent tool
+
+When Claude has access to the `Agent` tool, it can launch subagents:
+
+```
+> Analyze all TypeScript files in this repo in parallel and give me a
+  summary of each module's purpose.
+```
+
+Claude will spawn multiple agents, each reading different files simultaneously, then synthesize the results.
+
+## Orchestrator / subagent pattern
+
+```
+Orchestrator (main Claude session)
+    │
+    ├── Subagent A: analyze authentication module
+    ├── Subagent B: analyze payment module
+    └── Subagent C: analyze database layer
+         │
+         └── Returns results to orchestrator
+              │
+              └── Orchestrator synthesizes final report
+```
+
+**Orchestrator responsibilities:**
+- Breaking tasks into independent subtasks
+- Delegating to specialized subagents
+- Synthesizing results
+- Handling failures
+
+**Subagent characteristics:**
+- Isolated context (no access to orchestrator's conversation)
+- Can use all tools unless restricted
+- Scoped to a specific task
+
+## Controlling subagent tools
+
+Use `--allowedTools` and `--disallowedTools` to scope what subagents can do:
+
+```typescript
+// In a custom agent setup
+{
+  "subagent_type": "general-purpose",
+  "allowed_tools": ["Read", "Grep", "Glob"],  // read-only
+  "prompt": "Analyze the auth module and return a summary"
+}
+```
+
+## Headless + multi-agent in CI
+
+Run Claude Code non-interactively with subagent support:
+
+```bash
+claude -p "Review all changed files in this PR and output a JSON summary" \
+  --output-format json \
+  --max-turns 20 \
+  --allowedTools "Read,Grep,Glob,Bash(git diff*)"
+```
+
+## Parallel code review pattern
+
+```bash
+#!/bin/bash
+# Review multiple files in parallel
+
+FILES=$(git diff --name-only HEAD~1)
+
+for FILE in $FILES; do
+  claude -p "Review $FILE for bugs and security issues. Be concise." \
+    --allowedTools "Read" \
+    --output-format json > "review-$FILE.json" &
+done
+
+wait  # wait for all parallel jobs
+cat review-*.json | jq -s '.'
+```
+
+## Worktree isolation
+
+Use git worktrees to give each subagent an isolated copy of the repo:
+
+```bash
+# Create isolated worktree for a risky refactor
+git worktree add /tmp/refactor-branch feature/refactor
+claude --add-dir /tmp/refactor-branch -p "Refactor the auth module"
+```
+
+<Callout type="tip">
+  Worktree isolation is especially useful when testing speculative changes — each agent gets its own branch with no risk of conflicts.
+</Callout>
+
+## Best practices
+
+1. **Be specific in subagent prompts** — vague prompts lead to wasted turns
+2. **Restrict tools** — give subagents only the tools they need
+3. **Use `--max-turns`** in headless mode to prevent runaway agents
+4. **Prefer parallel over sequential** when tasks are independent
+5. **Have the orchestrator synthesize** — don't dump raw subagent output to users

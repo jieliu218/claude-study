@@ -1,0 +1,114 @@
+# Commands & Slash Commands
+
+## CLI Flags
+
+Run `claude --help` to see all flags. The most important ones:
+
+| Flag | Description |
+|---|---|
+| `--model <id>` | Choose a specific Claude model |
+| `-p, --print <prompt>` | Non-interactive (headless) mode |
+| `--continue` | Resume the most recent session |
+| `--resume <id>` | Resume a specific session by ID |
+| `--no-stream` | Disable streaming output |
+| `--output-format <fmt>` | Output format: `text`, `json`, `stream-json` |
+| `--max-turns <n>` | Limit agentic turns in headless mode |
+| `--allowedTools <list>` | Whitelist specific tools |
+| `--disallowedTools <list>` | Blacklist specific tools |
+| `--verbose` | Show full tool call details |
+| `--dangerously-skip-permissions` | Skip all confirmation prompts (CI use only) |
+| `--add-dir <path>` | Add an extra directory to context |
+| `--version` | Show version |
+
+## Slash Commands (in-session)
+
+These commands are typed inside an active Claude Code session.
+
+### Navigation & Help
+
+| Command | Description |
+|---|---|
+| `/help` | List all slash commands |
+| `/status` | Show current session info, model, cost |
+| `/history` | Show conversation history |
+
+### Memory
+
+| Command | Description |
+|---|---|
+| `/memory` | View and edit CLAUDE.md memory files |
+| `/memory add <text>` | Append a note to the nearest CLAUDE.md |
+
+### Configuration
+
+| Command | Description |
+|---|---|
+| `/config` | View current configuration |
+| `/model <id>` | Switch model mid-session |
+| `/permissions` | View or adjust tool permissions |
+
+### MCP
+
+| Command | Description |
+|---|---|
+| `/mcp` | List connected MCP servers and tools |
+
+### Session
+
+| Command | Description |
+|---|---|
+| `/clear` | Clear conversation history (keep context) |
+| `/reset` | Reset conversation and context |
+| `/compact` | Summarize history to save context window |
+| `/cost` | Show API cost for this session |
+
+### Code & Tools
+
+| Command | Description |
+|---|---|
+| `/review` | Ask Claude to review recent changes |
+| `/diff` | Show current git diff |
+| `/commit` | Stage and commit changes with AI message |
+
+### Custom slash commands
+
+You can define your own slash commands in `settings.json`:
+
+```json
+{
+  "customCommands": [
+    {
+      "name": "test-and-fix",
+      "description": "Run tests and fix failures",
+      "prompt": "Run all tests. If any fail, diagnose and fix them. Then run again to confirm."
+    }
+  ]
+}
+```
+
+Invoke with `/test-and-fix`.
+
+<Callout type="tip">
+  Custom commands can include `$SELECTION` (editor selection) and `$FILE` (current file) placeholders when used with the IDE extension.
+</Callout>
+
+## Tool names (for `--allowedTools`)
+
+When restricting tools, use these names:
+
+| Tool | What it does |
+|---|---|
+| `Read` | Read file contents |
+| `Write` | Write / overwrite files |
+| `Edit` | Make targeted edits to files |
+| `Bash` | Execute shell commands |
+| `Glob` | Find files by pattern |
+| `Grep` | Search file contents |
+| `WebFetch` | Fetch a URL |
+| `WebSearch` | Search the web |
+| `Agent` | Spawn a subagent |
+
+```bash
+# Allow only read and search tools (safe, read-only mode)
+claude --allowedTools "Read,Glob,Grep"
+```

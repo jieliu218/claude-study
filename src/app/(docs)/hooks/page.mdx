@@ -1,0 +1,184 @@
+# Hooks
+
+Hooks let you run shell commands automatically at specific points in Claude Code's lifecycle. Use them to enforce formatting, run linters, log activity, or block dangerous operations.
+
+## Hook events
+
+| Event | When it fires |
+|---|---|
+| `PreToolUse` | Before a tool is executed |
+| `PostToolUse` | After a tool completes |
+| `Notification` | When Claude sends a notification |
+| `Stop` | When a session ends |
+
+## Configuration
+
+Hooks are configured in `settings.json` under the `hooks` key:
+
+```json
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "npm run format 2>/dev/null || true"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+Each entry has:
+- **`matcher`** — a regex matched against the tool name (e.g. `Write|Edit`, `Bash`, `.*`)
+- **`hooks`** — array of hook objects to run
+
+## Hook types
+
+Currently only `"type": "command"` is supported. The command runs in a shell subprocess.
+
+```json
+{
+  "type": "command",
+  "command": "your-shell-command-here"
+}
+```
+
+## Hook input (stdin)
+
+Hooks receive a JSON payload on stdin with context about the event:
+
+```json
+{
+  "tool_name": "Write",
+  "tool_input": {
+    "file_path": "/path/to/file.ts",
+    "content": "..."
+  },
+  "session_id": "abc123"
+}
+```
+
+For `PostToolUse`, the payload also includes `tool_response`.
+
+## Controlling execution with exit codes
+
+| Exit code | Meaning |
+|---|---|
+| `0` | Success — proceed normally |
+| `2` | Block the tool call and show hook's stderr to Claude |
+| Other non-zero | Log the error, proceed anyway |
+
+Use exit code `2` in `PreToolUse` to **block** a tool call:
+
+```bash
+#!/bin/bash
+# Prevent writes to production config
+INPUT=$(cat)
+FILE=$(echo "$INPUT" | jq -r '.tool_input.file_path // ""')
+
+if [[ "$FILE" == *"config/production"* ]]; then
+  echo "Blocked: cannot modify production config directly" >&2
+  exit 2
+fi
+```
+
+## Common hook recipes
+
+### Auto-format on every file write
+
+```json
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "FILE=$(cat | jq -r '.tool_input.file_path // empty'); [ -n \"$FILE\" ] && npx prettier --write \"$FILE\" 2>/dev/null || true"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+### Run ESLint after editing TypeScript files
+
+```json
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "FILE=$(cat | jq -r '.tool_input.file_path // empty'); [[ \"$FILE\" == *.ts || \"$FILE\" == *.tsx ]] && npx eslint --fix \"$FILE\" 2>/dev/null || true"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+### Log all bash commands
+
+```json
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cat | jq -r '\"[\" + .session_id[:8] + \"] \" + (.tool_input.command // \"\")' >> ~/.claude/bash-log.txt"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+### Block `rm -rf` commands
+
+```json
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "INPUT=$(cat); CMD=$(echo \"$INPUT\" | jq -r '.tool_input.command // \"\"'); if echo \"$CMD\" | grep -qE 'rm\\s+-rf'; then echo 'Blocked: rm -rf is not allowed' >&2; exit 2; fi"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+<Callout type="warning">
+  Hooks run with your user permissions. Keep hook scripts short and avoid piping untrusted data to shell interpreters.
+</Callout>
+
+## Debugging hooks
+
+Enable verbose mode to see hook execution:
+
+```bash
+claude --verbose
+```
+
+Or check the Claude Code log file at `~/.claude/logs/`.

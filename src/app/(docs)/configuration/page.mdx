@@ -1,0 +1,160 @@
+# Configuration
+
+Claude Code uses a layered configuration system. Settings are merged in this order (later entries win):
+
+1. **System defaults**
+2. **User-level** `~/.claude/settings.json`
+3. **Project-level** `.claude/settings.json`
+4. **CLI flags** (highest priority)
+
+## Settings file locations
+
+| Scope | Path |
+|---|---|
+| User (global) | `~/.claude/settings.json` |
+| Project | `.claude/settings.json` (commit this) |
+| Project (local) | `.claude/settings.local.json` (gitignore this) |
+
+## Core settings
+
+```json
+{
+  "model": "claude-sonnet-4-6",
+  "theme": "dark",
+  "stream": true,
+  "verbose": false,
+
+  "permissions": {
+    "allow": ["Read", "Glob", "Grep", "Write", "Edit", "Bash"],
+    "deny": []
+  },
+
+  "env": {
+    "NODE_ENV": "development"
+  }
+}
+```
+
+## Permission settings
+
+Control which tools Claude can use without confirmation:
+
+```json
+{
+  "permissions": {
+    "allow": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash(npm test)",
+      "Bash(npm run lint)"
+    ],
+    "deny": [
+      "Bash(rm -rf*)",
+      "WebFetch"
+    ]
+  }
+}
+```
+
+Tool rules support glob-style patterns. `Bash(npm*)` allows any `npm` command.
+
+<Callout type="warning">
+  Be careful with `Bash` permissions — they execute real shell commands. Restrict to specific commands in project-level settings for safety.
+</Callout>
+
+## Custom slash commands
+
+```json
+{
+  "customCommands": [
+    {
+      "name": "review",
+      "description": "Review staged changes",
+      "prompt": "Review my staged git changes. Look for bugs, security issues, and style problems."
+    },
+    {
+      "name": "deploy-check",
+      "description": "Pre-deploy checklist",
+      "prompt": "Run tests, check for TODO comments, verify no debug logs, and confirm env vars are set."
+    }
+  ]
+}
+```
+
+## Hooks configuration
+
+```json
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo 'About to write a file'"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "npm run lint --fix 2>/dev/null || true"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+See the [Hooks](/hooks) page for full details.
+
+## MCP server configuration
+
+```json
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/tmp"]
+    },
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": {
+        "GITHUB_TOKEN": "ghp_..."
+      }
+    }
+  }
+}
+```
+
+## Environment variables
+
+| Variable | Description |
+|---|---|
+| `ANTHROPIC_API_KEY` | Required — your Anthropic API key |
+| `ANTHROPIC_BASE_URL` | Override the API base URL |
+| `ANTHROPIC_MODEL` | Default model to use |
+| `CLAUDE_CONFIG_DIR` | Override config directory (default: `~/.claude`) |
+| `NO_COLOR` | Disable colored output |
+| `CLAUDE_DEBUG` | Enable debug logging |
+
+## Viewing current config
+
+```
+/config
+```
+
+Or from the shell:
+
+```bash
+cat ~/.claude/settings.json
+cat .claude/settings.json
+```

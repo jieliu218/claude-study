@@ -1,0 +1,170 @@
+# MCP Servers
+
+Model Context Protocol (MCP) is an open standard for connecting AI models to external tools and data sources. Claude Code can act as an MCP client, connecting to servers that expose tools, resources, and prompts.
+
+## What MCP enables
+
+- Query databases directly from Claude
+- Search and interact with GitHub, Jira, Linear
+- Control a browser (Playwright/Puppeteer)
+- Read from APIs with authentication
+- Access custom internal tools
+
+## Adding an MCP server
+
+Add servers to `settings.json` under `mcpServers`:
+
+```json
+{
+  "mcpServers": {
+    "server-name": {
+      "command": "npx",
+      "args": ["-y", "@scope/mcp-server-name"],
+      "env": {
+        "API_KEY": "your-key"
+      }
+    }
+  }
+}
+```
+
+### Transport types
+
+| Transport | `command` field | Use case |
+|---|---|---|
+| **stdio** (default) | executable path or `npx` | Local processes |
+| **SSE** | N/A — use `url` field | Remote HTTP servers |
+
+SSE example:
+
+```json
+{
+  "mcpServers": {
+    "remote-server": {
+      "url": "https://my-mcp-server.example.com/sse",
+      "headers": {
+        "Authorization": "Bearer token"
+      }
+    }
+  }
+}
+```
+
+## Popular MCP servers
+
+### Filesystem
+
+Read/write files outside Claude's default scope:
+
+```json
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/Users/you/Documents"]
+    }
+  }
+}
+```
+
+### GitHub
+
+Create issues, PRs, search repositories:
+
+```json
+{
+  "mcpServers": {
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": { "GITHUB_TOKEN": "ghp_..." }
+    }
+  }
+}
+```
+
+### PostgreSQL
+
+Query your database:
+
+```json
+{
+  "mcpServers": {
+    "postgres": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-postgres", "postgresql://localhost/mydb"]
+    }
+  }
+}
+```
+
+### Puppeteer (browser)
+
+Control a browser for scraping or testing:
+
+```json
+{
+  "mcpServers": {
+    "puppeteer": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-puppeteer"]
+    }
+  }
+}
+```
+
+## Managing MCP in-session
+
+```
+/mcp              — list connected servers and available tools
+/mcp restart      — restart a specific server
+/mcp logs         — view server logs
+```
+
+## Building your own MCP server
+
+The MCP SDK supports TypeScript and Python:
+
+```bash
+npm install @modelcontextprotocol/sdk
+```
+
+```typescript
+import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+
+const server = new Server(
+  { name: "my-server", version: "1.0.0" },
+  { capabilities: { tools: {} } }
+);
+
+server.setRequestHandler(ListToolsRequestSchema, async () => ({
+  tools: [
+    {
+      name: "get_weather",
+      description: "Get current weather for a city",
+      inputSchema: {
+        type: "object",
+        properties: { city: { type: "string" } },
+        required: ["city"],
+      },
+    },
+  ],
+}));
+
+server.setRequestHandler(CallToolRequestSchema, async (request) => {
+  if (request.params.name === "get_weather") {
+    const { city } = request.params.arguments as { city: string };
+    // ... fetch weather data
+    return { content: [{ type: "text", text: `Weather in ${city}: sunny` }] };
+  }
+  throw new Error("Unknown tool");
+});
+
+const transport = new StdioServerTransport();
+await server.connect(transport);
+```
+
+<Callout type="info">
+  MCP server tools are displayed to Claude alongside built-in tools. Claude decides when to use them based on context.
+</Callout>

@@ -1,0 +1,98 @@
+# Memory (CLAUDE.md)
+
+Claude Code reads Markdown files named `CLAUDE.md` to build persistent context about your project. These files are read automatically at the start of every session.
+
+## File locations & precedence
+
+Claude merges CLAUDE.md files from multiple locations:
+
+| Location | Scope | Typical use |
+|---|---|---|
+| `~/.claude/CLAUDE.md` | User-global | Personal preferences, style rules |
+| `./CLAUDE.md` | Project root | Project overview, architecture, conventions |
+| `./src/CLAUDE.md` | Subdirectory | Component-specific context |
+
+All files are read and merged. More specific (deeper) files are treated as higher priority context.
+
+## What to put in CLAUDE.md
+
+A good project-level CLAUDE.md covers:
+
+```markdown
+# Project: My App
+
+## Overview
+Brief description of what this project does.
+
+## Architecture
+- Frontend: Next.js 14 (App Router) in /app
+- Backend: Express API in /server
+- Database: PostgreSQL via Prisma
+
+## Development commands
+- `npm run dev` — start dev server
+- `npm test` — run tests (Jest + Testing Library)
+- `npm run lint` — ESLint + Prettier
+
+## Conventions
+- Use kebab-case for file names
+- Always use TypeScript strict mode
+- Prefer named exports over default exports
+- Write tests for all public API functions
+
+## Key files
+- /app/api/ — API route handlers
+- /lib/db.ts — database client singleton
+- /types/ — shared TypeScript types
+
+## What NOT to do
+- Never commit .env files
+- Don't use `any` type without a comment explaining why
+- Don't mock the database in integration tests
+```
+
+## Dynamic memory
+
+Claude can update CLAUDE.md during a session when asked, or when it notices recurring patterns:
+
+```
+> Remember that we always use Vitest, not Jest, in this project.
+```
+
+Use `/memory` to view and edit memory files:
+
+```
+/memory
+```
+
+## Memory for individuals vs teams
+
+<Callout type="tip">
+  Commit `CLAUDE.md` to git so the whole team benefits. Use `~/.claude/CLAUDE.md` for personal preferences you don't want to share.
+</Callout>
+
+**Team CLAUDE.md** (committed):
+- Architecture decisions
+- Coding standards
+- Build/test commands
+- Domain glossary
+
+**Personal `~/.claude/CLAUDE.md`**:
+- Response length preferences
+- Preferred explanation style
+- Personal workflow preferences
+
+## CLAUDE.md vs settings.json
+
+| What | Where |
+|---|---|
+| Prose context, coding standards, architecture | CLAUDE.md |
+| Tool permissions, hooks, MCP servers | settings.json |
+| API key | environment variable |
+
+## Tips
+
+- Keep CLAUDE.md files **focused and current** — stale context misleads Claude
+- Use headings so Claude can find specific sections easily
+- Include **anti-patterns** ("don't do X") — these are often most valuable
+- Link to key files with relative paths like `/src/auth/index.ts`

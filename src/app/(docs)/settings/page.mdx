@@ -1,0 +1,131 @@
+# Settings Reference
+
+Complete reference for all `settings.json` fields.
+
+## Full schema
+
+```json
+{
+  // Model selection
+  "model": "claude-sonnet-4-6",
+
+  // Display
+  "theme": "dark",           // "dark" | "light" | "auto"
+  "stream": true,            // stream output (default: true)
+  "verbose": false,          // show full tool details
+
+  // Permissions
+  "permissions": {
+    "allow": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
+    "deny": []
+  },
+
+  // Shell environment passed to all tool executions
+  "env": {
+    "NODE_ENV": "development",
+    "PATH": "/usr/local/bin:/usr/bin:/bin"
+  },
+
+  // Custom slash commands
+  "customCommands": [
+    {
+      "name": "command-name",
+      "description": "Shown in /help",
+      "prompt": "The full prompt to run"
+    }
+  ],
+
+  // Lifecycle hooks
+  "hooks": {
+    "PreToolUse": [],
+    "PostToolUse": [],
+    "Notification": [],
+    "Stop": []
+  },
+
+  // MCP server connections
+  "mcpServers": {
+    "server-name": {
+      "command": "npx",
+      "args": ["-y", "@scope/server"],
+      "env": {}
+    }
+  },
+
+  // Auto-compact conversation when context approaches limit
+  "autoCompact": true,
+
+  // Cost limits
+  "maxCostPerSession": 5.00,  // USD
+
+  // Include/exclude patterns for file context
+  "includePatterns": ["**/*.ts", "**/*.tsx"],
+  "excludePatterns": ["**/node_modules/**", "**/.git/**"]
+}
+```
+
+## Permission rule syntax
+
+Rules in `permissions.allow` and `permissions.deny` follow this syntax:
+
+| Pattern | Matches |
+|---|---|
+| `Read` | All `Read` tool calls |
+| `Bash` | All `Bash` tool calls |
+| `Bash(npm*)` | `Bash` calls where command starts with `npm` |
+| `Bash(npm test)` | Exact `npm test` command |
+| `Write(/tmp/*)` | `Write` calls to paths under `/tmp/` |
+| `Edit(*.md)` | `Edit` calls to `.md` files |
+
+`deny` rules take precedence over `allow` rules.
+
+## Hook object schema
+
+```typescript
+interface HookConfig {
+  matcher: string;   // regex matched against tool name
+  hooks: Array<{
+    type: "command";
+    command: string;  // shell command to execute
+    timeout?: number; // ms, default 30000
+  }>;
+}
+```
+
+## MCP server schema
+
+```typescript
+// stdio transport (most common)
+interface StdioMcpServer {
+  command: string;       // executable
+  args?: string[];
+  env?: Record<string, string>;
+  cwd?: string;          // working directory for the server process
+}
+
+// SSE transport (remote servers)
+interface SseMcpServer {
+  url: string;
+  headers?: Record<string, string>;
+}
+```
+
+## Precedence order
+
+Settings are merged in this order (last wins):
+
+```
+System defaults
+    ↓
+~/.claude/settings.json (user)
+    ↓
+.claude/settings.json (project, committed)
+    ↓
+.claude/settings.local.json (project, gitignored)
+    ↓
+CLI flags
+```
+
+<Callout type="tip">
+  For team projects: commit `.claude/settings.json` with shared tool permissions and MCP servers. Developers add personal overrides to `.claude/settings.local.json` (add to `.gitignore`).
+</Callout>

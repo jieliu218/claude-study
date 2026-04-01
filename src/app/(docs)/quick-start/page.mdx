@@ -1,0 +1,71 @@
+# Quick Start
+
+Get productive with Claude Code in under 5 minutes.
+
+## 1. Start a session
+
+```bash
+cd your-project
+claude
+```
+
+## 2. Ask Claude to explore your code
+
+```
+> What does this project do? Give me a high-level overview.
+```
+
+```
+> Find all API endpoints and list them with their HTTP methods.
+```
+
+## 3. Make changes
+
+```
+> Add input validation to the createUser function in src/users.ts
+```
+
+```
+> Write tests for the payment module. Follow the existing test patterns.
+```
+
+## 4. Run commands through Claude
+
+```
+> Run the tests and fix any failures you find.
+```
+
+```
+> Lint the codebase and fix all auto-fixable issues.
+```
+
+## 5. Resume a session
+
+```bash
+claude --continue       # resume last conversation
+claude --resume abc123  # resume by session ID
+```
+
+## Common first tasks
+
+| Task | Prompt |
+|---|---|
+| Understand a file | `Explain what src/auth.ts does` |
+| Fix a bug | `Fix the TypeError on line 42 of api.ts` |
+| Add a feature | `Add pagination to the /users endpoint` |
+| Refactor | `Refactor this module to use async/await` |
+| Write docs | `Write JSDoc comments for all exported functions` |
+| Review a diff | `Review my staged changes and suggest improvements` |
+
+## Useful flags
+
+```bash
+claude --model claude-opus-4-6    # use a specific model
+claude --no-stream                # disable streaming output
+claude -p "fix lint errors"       # one-shot non-interactive
+claude --output-format json       # output JSON (headless mode)
+```
+
+<Callout type="tip">
+  Type `/help` inside a session to see all available slash commands.
+</Callout>
